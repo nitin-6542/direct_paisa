@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Filter, Download, Search, Upload, Eye, Trash2 } from "lucide-react";
+import { Filter, Download, Search, Upload, Eye, Trash2, Edit2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ConfirmationModal from "./ui/ConfirmationModal";
 
@@ -18,6 +18,10 @@ export default function LeadsListScreen() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [users, setUsers] = useState<any[]>([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingLead, setEditingLead] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({ customerName: '', phone: '', company: '', loanAmount: '' });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -112,8 +116,51 @@ export default function LeadsListScreen() {
       alert('Failed to delete lead');
     } finally {
       setDeletingId(null);
+      setDeletingId(null);
       setConfirmOpen(false);
       setConfirmTarget(null);
+    }
+  };
+
+  const openEditModal = (lead: any) => {
+    setEditingLead(lead);
+    setEditFormData({
+      customerName: lead.customerName || '',
+      phone: lead.phone || '',
+      company: lead.company || '',
+      loanAmount: lead.loanAmount ? String(lead.loanAmount) : ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/leads/${editingLead.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customerName: editFormData.customerName,
+          phone: editFormData.phone,
+          company: editFormData.company,
+          loanAmount: editFormData.loanAmount ? Number(editFormData.loanAmount) : null
+        })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setLeads((prev) => prev.map((l) => (l.id === editingLead.id ? updated : l)));
+        setShowEditModal(false);
+        setEditingLead(null);
+      } else {
+        alert("Failed to update lead");
+      }
+    } catch (err) {
+      console.error("Edit failed:", err);
+      alert("Failed to update lead");
     }
   };
 
@@ -434,6 +481,14 @@ export default function LeadsListScreen() {
                     </label>
 
                     <button
+                      onClick={() => openEditModal(lead)}
+                      className="text-gray-600 hover:text-blue-600 transition"
+                      title="Edit Lead"
+                    >
+                      <Edit2 size={20} />
+                    </button>
+
+                    <button
                       onClick={() => { setConfirmTarget(lead.id); setConfirmOpen(true); }}
                       className="text-gray-600 hover:text-red-600 transition"
                       title="Delete Lead"
@@ -480,6 +535,54 @@ export default function LeadsListScreen() {
         onConfirm={() => confirmTarget && handleDeleteLead(confirmTarget)}
         confirmText={deletingId ? 'Deleting...' : 'Delete'}
       />
+
+      {showEditModal && editingLead && (
+        <div className="fixed inset-0 bg-black/50 flex flex-col items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-gray-900 text-xl font-bold">Edit Lead</h2>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Customer Name"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.customerName}
+                  onChange={e => setEditFormData({ ...editFormData, customerName: e.target.value })}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Mobile Number"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.phone}
+                  onChange={e => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Company/Business Name"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.company}
+                  onChange={e => setEditFormData({ ...editFormData, company: e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Loan Amount"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.loanAmount}
+                  onChange={e => setEditFormData({ ...editFormData, loanAmount: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => { setShowEditModal(false); setEditingLead(null); }} className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-medium">Cancel</button>
+                <button type="submit" className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors font-bold">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

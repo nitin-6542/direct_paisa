@@ -697,5 +697,29 @@ export async function registerRoutes(
   // Run seed script
   await seedDatabase();
 
+  // Auto punch-out missing checkouts from previous days
+  const runAutoCheckout = async () => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const allAtt = await storage.getAttendance();
+      const missingCheckout = allAtt.filter(
+        (a) => a.date < today && a.checkOutTime === null
+      );
+      for (const att of missingCheckout) {
+        // Set checkout time to 23:59:59 of that specific date
+        const eod = new Date(`${att.date}T23:59:59`);
+        await storage.updateAttendance(att.id, {
+          checkOutTime: eod,
+        });
+        console.log(`Auto checked-out user ${att.userId} for date ${att.date}`);
+      }
+    } catch (err) {
+      console.error("Auto checkout error", err);
+    }
+  };
+
+  runAutoCheckout();
+  setInterval(runAutoCheckout, 1000 * 60 * 60); // Check once an hour
+
   return httpServer;
 }
