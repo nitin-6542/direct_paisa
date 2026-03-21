@@ -13,6 +13,7 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   createLead(lead: InsertLead & { createdById: number }): Promise<Lead>;
   updateLead(id: number, updates: Partial<InsertLead>): Promise<Lead>;
+  deleteLead(id: number): Promise<void>;
 
   getAttendance(): Promise<Attendance[]>;
   createAttendance(att: InsertAttendance): Promise<Attendance>;
@@ -70,6 +71,10 @@ export class DatabaseStorage implements IStorage {
   async updateLead(id: number, updates: Partial<InsertLead>): Promise<Lead> {
     const [updated] = await db.update(leads).set(updates).where(eq(leads.id, id)).returning();
     return updated;
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    await db.delete(leads).where(eq(leads.id, id));
   }
 
   async getAttendance(): Promise<Attendance[]> {

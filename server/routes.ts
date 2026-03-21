@@ -336,8 +336,7 @@ export async function registerRoutes(
   app.delete('/api/leads/:id', verifyToken, async (req, res) => {
     try {
       const id = Number(req.params.id);
-      await storage.updateLead(id, { status: 'Lost' }); // soft-delete: mark as Lost
-      // or permanently delete if storage supports it: await storage.deleteLead(id);
+      await storage.deleteLead(id); // Permanently delete lead
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ message: 'Internal server error' });
