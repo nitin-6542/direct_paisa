@@ -1,0 +1,170 @@
+import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { TrendingUp, Users, CheckCircle, Clock } from "lucide-react";
+
+interface DashboardData {
+  totalLeads: number;
+  todayAttendance: string;
+  activeEmployees: number | null;
+  conversionRate: string;
+  recentActivity: any[];
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        const res = await fetch("/api/dashboard", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const result = await res.json();
+        setData(result);
+      } catch (error) {
+        console.error("Dashboard fetch failed", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-60">
+        <p className="text-gray-500">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center h-60">
+        <p className="text-gray-500">Unable to load dashboard.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
+        <h1 className="mb-2">Welcome back, {user?.name}!</h1>
+        <p className="text-orange-100">
+          Here's what's happening with your business today.
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Leads */}
+        <StatCard
+          icon={<TrendingUp className="text-blue-600" size={24} />}
+          bg="bg-blue-50"
+          value={data.totalLeads}
+          label="Total Leads"
+        />
+
+        {/* Attendance */}
+        <StatCard
+          icon={<CheckCircle className="text-green-600" size={24} />}
+          bg="bg-green-50"
+          value={data.todayAttendance}
+          label="Today's Attendance"
+        />
+
+        {/* Active Employees */}
+        {data.activeEmployees !== null && (
+          <StatCard
+            icon={<Users className="text-purple-600" size={24} />}
+            bg="bg-purple-50"
+            value={data.activeEmployees}
+            label="Active Employees"
+          />
+        )}
+
+        {/* Conversion */}
+        <StatCard
+          icon={<Clock className="text-orange-600" size={24} />}
+          bg="bg-orange-50"
+          value={data.conversionRate}
+          label="Conversion Rate"
+        />
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-gray-900">Recent Activity</h2>
+        </div>
+
+        <div className="p-6">
+          {data.recentActivity.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              No recent activity yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {data.recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0"
+                >
+                  <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="text-orange-600" size={18} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-900">{activity.action}</p>
+                    <p className="text-gray-600">
+                      {activity.name} •{" "}
+                      {activity.company ||
+                        activity.location ||
+                        "No details"}
+                    </p>
+                  </div>
+
+                  <span className="text-gray-500 text-sm flex-shrink-0">
+                    {new Date(activity.time).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Reusable Stat Card */
+function StatCard({
+  icon,
+  bg,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  bg: string;
+  value: any;
+  label: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center`}>
+          {icon}
+        </div>
+      </div>
+      <h3 className="text-gray-900 mb-1">{value ?? "-"}</h3>
+      <p className="text-gray-600">{label}</p>
+    </div>
+  );
+}

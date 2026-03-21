@@ -1,0 +1,87 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+pnpm-lock.yaml
+
+# Vite / build
+dist/
+.build/
+.out/
+coverage/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python virtualenvs
+venv/
+.venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Capacitor / native (if/when added)
+android/
+ios/
+*.keystore
+
+# Misc
+*.log
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+pnpm-lock.yaml
+
+# Vite / build
+dist/
+.build/
+.out/
+coverage/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python virtualenvs
+venv/
+.venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Capacitor / native (if/when added)
+android/
+ios/
+*.keystore
+*.bak
+# Misc
+*.log
+*.zip
+
+.local/
+attached_assets/
+*.zip
