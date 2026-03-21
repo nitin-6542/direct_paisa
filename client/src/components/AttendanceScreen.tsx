@@ -12,7 +12,8 @@ export default function AttendanceScreen() {
   const [locationName, setLocationName] = useState("Fetching location...");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const fetchData = async () => {
     try {
@@ -205,6 +206,26 @@ export default function AttendanceScreen() {
 
   const isManager = user?.role !== 'EMPLOYEE';
 
+  const filterByDateRange = (record: any) => {
+    let matchesDate = true;
+    try {
+      if (startDate || endDate) {
+        const d = new Date(record.date);
+        if (startDate) {
+          const s = new Date(startDate);
+          s.setHours(0, 0, 0, 0);
+          if (d < s) matchesDate = false;
+        }
+        if (endDate && matchesDate) {
+          const e = new Date(endDate);
+          e.setHours(23, 59, 59, 999);
+          if (d > e) matchesDate = false;
+        }
+      }
+    } catch { matchesDate = true; }
+    return matchesDate;
+  };
+
   const filteredTeamAttendance = attendance.filter((a) => {
     let matches = true;
     if (searchTerm) {
@@ -214,13 +235,10 @@ export default function AttendanceScreen() {
         matches = false;
       }
     }
-    if (dateFilter && a.date !== dateFilter) {
-      matches = false;
-    }
-    return matches;
+    return matches && filterByDateRange(a);
   });
 
-  const myAttendance = attendance.filter(a => a.userId === user?.id);
+  const myAttendance = attendance.filter(a => a.userId === user?.id && filterByDateRange(a));
 
   const handleExport = () => {
     const exportData = isManager ? filteredTeamAttendance : myAttendance;
@@ -250,15 +268,32 @@ export default function AttendanceScreen() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-gray-900 mb-2 font-bold text-2xl">Attendance</h1>
           <p className="text-gray-600">Mark and track attendance logs</p>
         </div>
-        <button onClick={handleExport} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl transition-colors flex items-center gap-2">
-          <Download size={20} />
-          Export CSV
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            title="Start Date"
+          />
+          <span className="text-gray-500 text-sm">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            title="End Date"
+          />
+          <button onClick={handleExport} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2 h-[38px] w-full md:w-auto justify-center">
+            <Download size={20} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -322,7 +357,7 @@ export default function AttendanceScreen() {
               <div className="p-6 border-b border-gray-100">
                 <h2 className="text-gray-900 font-semibold mb-4">Team Attendance Logs</h2>
                 <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
+                  <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="text"
@@ -332,12 +367,6 @@ export default function AttendanceScreen() {
                       className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
-                  <input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
                 </div>
               </div>
               <div className="overflow-x-auto flex-1">
@@ -425,7 +454,7 @@ export default function AttendanceScreen() {
                     </div>
                   ))}
                   {myAttendance.length === 0 && (
-                    <p className="text-gray-500 text-sm text-center py-4">No attendance history found.</p>
+                    <p className="text-gray-500 text-sm text-center py-4">No attendance history found for this range.</p>
                   )}
                 </div>
               </div>

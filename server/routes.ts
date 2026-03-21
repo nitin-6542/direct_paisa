@@ -638,44 +638,42 @@ export async function registerRoutes(
         "%"
         : "0%";
 
-    // Sort latest first
-    const sortedLeads = [...filteredLeads]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime(),
-      )
-      .slice(0, 5);
+    // Generate events for both Leads and Attendance
+    const leadEvents = filteredLeads.map((l) => ({
+      id: `lead-${l.id}`,
+      type: "lead",
+      action:
+        l.status === LEAD_STATUS.CONVERTED
+          ? "Lead converted"
+          : "New lead added",
+      name: allUsers.find((u) => u.id === l.createdById)?.name || "Unknown",
+      company: l.company,
+      time: l.createdAt || new Date(),
+    }));
 
-    const sortedAttendance = [...filteredAttendance]
-      .sort(
-        (a, b) =>
-          new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime(),
-      )
-      .slice(0, 5);
-
-    // Build activity array
-    const recentActivity = [
-      ...sortedLeads.map((l) => ({
-        id: `lead-${l.id}`,
-        type: "lead",
-        action:
-          l.status === LEAD_STATUS.CONVERTED
-            ? "Lead converted"
-            : "New lead added",
-        name: allUsers.find((u) => u.id === l.createdById)?.name || "Unknown",
-        company: l.company,
-        time: l.createdAt || new Date(),
-      })),
-
-      ...sortedAttendance.map((a) => ({
-        id: `attendance-${a.id}`,
+    const attendanceEvents = filteredAttendance.flatMap((a) => {
+      const events = [{
+        id: `attendance-in-${a.id}`,
         type: "attendance",
         action: "Employee checked in",
         name: allUsers.find((u) => u.id === a.userId)?.name || "Unknown",
         location: "Checked in",
         time: a.checkInTime,
-      })),
-    ]
+      }];
+      if (a.checkOutTime) {
+        events.push({
+          id: `attendance-out-${a.id}`,
+          type: "attendance",
+          action: "Employee checked out",
+          name: allUsers.find((u) => u.id === a.userId)?.name || "Unknown",
+          location: "Checked out",
+          time: a.checkOutTime,
+        });
+      }
+      return events;
+    });
+
+    const recentActivity = [...leadEvents, ...attendanceEvents]
       .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
       .slice(0, 6);
 

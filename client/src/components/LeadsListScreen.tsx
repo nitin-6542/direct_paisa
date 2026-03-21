@@ -50,6 +50,24 @@ export default function LeadsListScreen() {
     return { name: user.name, role: user.role };
   };
 
+  const getManagerDetails = (createdById: number) => {
+    const creator = users.find(u => u.id === createdById);
+    if (!creator) return { name: "N/A", role: "" };
+
+    if (creator.teamLeaderId) {
+      const tl = users.find(u => u.id === creator.teamLeaderId);
+      if (tl) return { name: tl.name, role: tl.role };
+    }
+    if (creator.areaManagerId) {
+      const am = users.find(u => u.id === creator.areaManagerId);
+      if (am) return { name: am.name, role: am.role };
+    }
+    
+    // If the creator doesn't have a TL or AM, they are at the top (or are an MD)
+    if (creator.role === "MD") return { name: creator.name, role: "MD (Self)" };
+    return { name: "Direct", role: "MD" };
+  };
+
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     leadId: string
@@ -229,6 +247,8 @@ export default function LeadsListScreen() {
           "Company",
           "Added By",
           "Role",
+          "Manager",
+          "Manager Role",
           "Loan Amount",
           "Status",
           "Date",
@@ -238,12 +258,15 @@ export default function LeadsListScreen() {
 
       filteredLeads.forEach((lead) => {
         const creator = getCreatorDetails(lead.createdById || lead.createdBy || 0);
+        const manager = getManagerDetails(lead.createdById || lead.createdBy || 0);
         rows.push([
           lead.customerName ?? "",
           lead.phone ?? "",
           lead.company ?? "",
           creator.name,
           creator.role,
+          manager.name,
+          manager.role,
           lead.loanAmount != null ? String(lead.loanAmount) : "",
           lead.status ?? "",
           lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "",
@@ -389,6 +412,7 @@ export default function LeadsListScreen() {
                 <th className="px-6 py-4 text-left text-gray-700">Mobile</th>
                 <th className="px-6 py-4 text-left text-gray-700">Company</th>
                 <th className="px-6 py-4 text-left text-gray-700">Added By</th>
+                <th className="px-6 py-4 text-left text-gray-700">Manager</th>
                 <th className="px-6 py-4 text-left text-gray-700">
                   Loan Amount
                 </th>
@@ -414,6 +438,12 @@ export default function LeadsListScreen() {
                     <div className="flex flex-col">
                       <span className="text-gray-900">{getCreatorDetails(lead.createdById).name}</span>
                       <span className="text-xs text-gray-500">{getCreatorDetails(lead.createdById).role}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-gray-900">{getManagerDetails(lead.createdById).name}</span>
+                      <span className="text-xs text-gray-500">{getManagerDetails(lead.createdById).role}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-900">
