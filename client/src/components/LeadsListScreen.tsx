@@ -21,19 +21,24 @@ export default function LeadsListScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
   const [editFormData, setEditFormData] = useState({ customerName: '', phone: '', company: '', loanAmount: '' });
+  const [companies, setCompanies] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [leadsRes, usersRes] = await Promise.all([
+        const [leadsRes, usersRes, companiesRes] = await Promise.all([
           fetch("/api/leads", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch("/api/users", { headers: { Authorization: `Bearer ${token}` } })
+          fetch("/api/users", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/companies", { headers: { Authorization: `Bearer ${token}` } })
         ]);
         if (leadsRes.ok) {
           setLeads(await leadsRes.json());
         }
         if (usersRes.ok) {
           setUsers(await usersRes.json());
+        }
+        if (companiesRes.ok) {
+          setCompanies(await companiesRes.json());
         }
       } catch (err) {
         console.error("Failed to fetch data", err);
@@ -206,8 +211,14 @@ export default function LeadsListScreen() {
 
     const matchesStatus =
       statusFilter === "all" || lead.status === statusFilter;
-    const matchesEmployee =
-      employeeFilter === "all" || lead.createdById.toString() === employeeFilter;
+    let matchesEmployee = true;
+    if (employeeFilter !== "all") {
+      const selectedManagerId = Number(employeeFilter);
+      const teamUserIds = users
+        .filter(u => u.id === selectedManagerId || u.teamLeaderId === selectedManagerId || u.areaManagerId === selectedManagerId)
+        .map(u => u.id);
+      matchesEmployee = teamUserIds.includes(lead.createdById) || teamUserIds.includes(lead.assignedToId || 0);
+    }
     // date range filtering
     let matchesDate = true;
     try {
@@ -354,8 +365,8 @@ export default function LeadsListScreen() {
               onChange={(e) => setEmployeeFilter(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              <option value="all">All Employees</option>
-              {users.map(u => (
+              <option value="all">All Teams / Managers</option>
+              {users.filter(u => ["MD", "AM", "TL"].includes(u.role)).map(u => (
                 <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
               ))}
             </select>
@@ -590,13 +601,16 @@ export default function LeadsListScreen() {
                   onChange={e => setEditFormData({ ...editFormData, phone: e.target.value })}
                   required
                 />
-                <input
-                  type="text"
-                  placeholder="Company/Business Name"
+                <select
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
                   value={editFormData.company}
                   onChange={e => setEditFormData({ ...editFormData, company: e.target.value })}
-                />
+                >
+                  <option value="">Select a company</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.title}>{c.title}</option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   placeholder="Loan Amount"
