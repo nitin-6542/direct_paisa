@@ -20,7 +20,10 @@ export default function LeadsListScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
-  const [editFormData, setEditFormData] = useState({ customerName: '', phone: '', company: '', loanAmount: '' });
+  const [editFormData, setEditFormData] = useState({ 
+    customerName: '', phone: '', company: '', loanAmount: '',
+    pan: '', pincode: '', employmentType: '', gender: ''
+  });
   const [companies, setCompanies] = useState<any[]>([]);
 
   useEffect(() => {
@@ -145,13 +148,23 @@ export default function LeadsListScreen() {
     }
   };
 
+  const extractNote = (notes: string, key: string) => {
+    if (!notes) return '';
+    const match = notes.match(new RegExp(`${key}:\\s*([^,]+)`));
+    return match ? match[1].trim() : '';
+  };
+
   const openEditModal = (lead: any) => {
     setEditingLead(lead);
     setEditFormData({
       customerName: lead.customerName || '',
       phone: lead.phone || '',
       company: lead.company || '',
-      loanAmount: lead.loanAmount ? String(lead.loanAmount) : ''
+      loanAmount: lead.loanAmount ? String(lead.loanAmount) : '',
+      pan: extractNote(lead.notes, 'PAN'),
+      pincode: extractNote(lead.notes, 'Pincode'),
+      employmentType: extractNote(lead.notes, 'Employment'),
+      gender: extractNote(lead.notes, 'Gender')
     });
     setShowEditModal(true);
   };
@@ -169,7 +182,8 @@ export default function LeadsListScreen() {
           customerName: editFormData.customerName,
           phone: editFormData.phone,
           company: editFormData.company,
-          loanAmount: editFormData.loanAmount ? Number(editFormData.loanAmount) : null
+          loanAmount: editFormData.loanAmount ? Number(editFormData.loanAmount) : null,
+          notes: `PAN: ${editFormData.pan}, Pincode: ${editFormData.pincode}, Employment: ${editFormData.employmentType}, Gender: ${editFormData.gender}`
         })
       });
 
@@ -420,8 +434,9 @@ export default function LeadsListScreen() {
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="px-6 py-4 text-left text-gray-700">Customer</th>
-                <th className="px-6 py-4 text-left text-gray-700">Mobile</th>
+                <th className="px-6 py-4 text-left text-gray-700">Contact</th>
                 <th className="px-6 py-4 text-left text-gray-700">Company</th>
+                <th className="px-6 py-4 text-left text-gray-700">Details</th>
                 <th className="px-6 py-4 text-left text-gray-700">Added By</th>
                 <th className="px-6 py-4 text-left text-gray-700">Manager</th>
                 <th className="px-6 py-4 text-left text-gray-700">
@@ -441,10 +456,20 @@ export default function LeadsListScreen() {
                   className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-6 py-4">
-                    <p className="text-gray-900">{lead.customerName}</p>
+                    <p className="text-gray-900 font-medium">{lead.customerName}</p>
+                    <p className="text-xs text-gray-500 capitalize">{extractNote(lead.notes, 'Gender')}</p>
                   </td>
-                  <td className="px-6 py-4 text-gray-700">{lead.phone}</td>
+                  <td className="px-6 py-4">
+                    <p className="text-gray-900">{lead.phone}</p>
+                    {extractNote(lead.notes, 'Pincode') && <p className="text-xs text-gray-500">Pin: {extractNote(lead.notes, 'Pincode')}</p>}
+                  </td>
                   <td className="px-6 py-4 text-gray-700">{lead.company}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-mono">PAN: {extractNote(lead.notes, 'PAN') || 'N/A'}</span>
+                      <span className="text-xs text-gray-500 capitalize">Emp: {extractNote(lead.notes, 'Employment') || 'N/A'}</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-gray-900">{getCreatorDetails(lead.createdById).name}</span>
@@ -584,15 +609,17 @@ export default function LeadsListScreen() {
               <h2 className="text-gray-900 text-xl font-bold">Edit Lead</h2>
             </div>
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Customer Name"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-                  value={editFormData.customerName}
-                  onChange={e => setEditFormData({ ...editFormData, customerName: e.target.value })}
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <input
+                    type="text"
+                    placeholder="Customer Name"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                    value={editFormData.customerName}
+                    onChange={e => setEditFormData({ ...editFormData, customerName: e.target.value })}
+                    required
+                  />
+                </div>
                 <input
                   type="text"
                   placeholder="Mobile Number"
@@ -612,12 +639,49 @@ export default function LeadsListScreen() {
                   ))}
                 </select>
                 <input
-                  type="number"
-                  placeholder="Loan Amount"
+                  type="text"
+                  placeholder="PAN Number"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-                  value={editFormData.loanAmount}
-                  onChange={e => setEditFormData({ ...editFormData, loanAmount: e.target.value })}
+                  value={editFormData.pan}
+                  onChange={e => setEditFormData({ ...editFormData, pan: e.target.value })}
                 />
+                <input
+                  type="text"
+                  placeholder="Pincode"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.pincode}
+                  onChange={e => setEditFormData({ ...editFormData, pincode: e.target.value })}
+                />
+                <select
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.employmentType}
+                  onChange={e => setEditFormData({ ...editFormData, employmentType: e.target.value })}
+                >
+                    <option value="">Select employment type</option>
+                    <option value="salaried">Salaried</option>
+                    <option value="self-employed">Self-employed</option>
+                    <option value="business">Business Owner</option>
+                    <option value="professional">Professional</option>
+                </select>
+                <select
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                  value={editFormData.gender}
+                  onChange={e => setEditFormData({ ...editFormData, gender: e.target.value })}
+                >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+                <div className="md:col-span-2">
+                  <input
+                    type="number"
+                    placeholder="Loan Amount"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                    value={editFormData.loanAmount}
+                    onChange={e => setEditFormData({ ...editFormData, loanAmount: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => { setShowEditModal(false); setEditingLead(null); }} className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-medium">Cancel</button>
