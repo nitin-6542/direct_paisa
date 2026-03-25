@@ -86,6 +86,12 @@ export const aboutUs = pgTable("about_us", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const homeSettings = pgTable("home_settings", {
+  id: serial("id").primaryKey(),
+  imageUrl: text("image_url"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -115,6 +121,11 @@ export const insertAboutUsSchema = createInsertSchema(aboutUs).omit({
   updatedAt: true
 });
 
+export const insertHomeSettingsSchema = createInsertSchema(homeSettings).omit({
+  id: true,
+  updatedAt: true
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -128,5 +139,8 @@ export type InsertCompany = z.infer<typeof insertCompanySchema>;
 
 export type AboutUs = typeof aboutUs.$inferSelect;
 export type InsertAboutUs = z.infer<typeof insertAboutUsSchema>;
+
+export type HomeSettings = typeof homeSettings.$inferSelect;
+export type InsertHomeSettings = z.infer<typeof insertHomeSettingsSchema>;
 
 export type SafeUser = Omit<User, "password">;

@@ -9,6 +9,7 @@ import TeamManagementScreen from './components/TeamManagementScreen';
 import LeadsListScreen from './components/LeadsListScreen';
 import ProfileScreen from './components/ProfileScreen';
 import AboutUsScreen from './components/AboutUsScreen';
+import EmiCalculatorScreen from './components/EmiCalculatorScreen';
 import Layout from './components/Layout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -84,6 +85,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Layout>
             <AboutUsScreen />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/emi-calculator" element={
+        <ProtectedRoute>
+          <Layout>
+            <EmiCalculatorScreen />
           </Layout>
         </ProtectedRoute>
       } />

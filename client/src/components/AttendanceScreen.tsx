@@ -43,7 +43,7 @@ export default function AttendanceScreen() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     if (token) fetchData();
 
-    if (navigator.geolocation) {
+    if (navigator.geolocation && (!todayRecord || !todayRecord.checkOutTime)) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLocation({
@@ -57,6 +57,9 @@ export default function AttendanceScreen() {
         () => setLocationName("Location unavailable"),
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
       );
+    } else if (todayRecord?.checkOutTime) {
+      setLocation({ lat: 0, lng: 0 });
+      setLocationName("Location tracking disabled off-shift");
     }
 
     return () => clearInterval(timer);
@@ -112,45 +115,25 @@ export default function AttendanceScreen() {
   const handlePunchOut = async () => {
     setLoading(true);
     try {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const lat = String(position.coords.latitude);
-            const lng = String(position.coords.longitude);
-            try {
-              const res = await fetch("/api/attendance/checkout", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ lat, lng }),
-              });
-              if (res.ok) {
-                setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-                await fetchData();
-              } else {
-                const err = await res.json().catch(() => ({ message: 'Punch out failed' }));
-                alert(err.message || 'Punch out failed');
-              }
-            } catch (err) {
-              console.error('Punch out failed', err);
-              alert('Punch out failed');
-            }
-          },
-          (error) => {
-            console.error('Geolocation error', error);
-            if (error.code === 1) {
-              alert('Location permission denied. Please enable location access and try again.');
-            } else {
-              alert('Unable to retrieve location. Please try again.');
-            }
-          },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-        );
+      const res = await fetch("/api/attendance/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ lat: "0", lng: "0" }),
+      });
+      if (res.ok) {
+        setLocation({ lat: 0, lng: 0 });
+        setLocationName("Location tracking disabled off-shift");
+        await fetchData();
       } else {
-        alert('Geolocation is not supported by your browser');
+        const err = await res.json().catch(() => ({ message: 'Punch out failed' }));
+        alert(err.message || 'Punch out failed');
       }
+    } catch (err) {
+      console.error('Punch out failed', err);
+      alert('Punch out failed');
     } finally {
       setLoading(false);
     }

@@ -567,6 +567,27 @@ export async function registerRoutes(
     }
   );
 
+  // Home Settings Routes
+  app.get(api.homeSettings.get.path, verifyToken, async (req, res) => {
+    const settings = await storage.getHomeSettings();
+    res.json(settings || null);
+  });
+
+  app.post(
+    api.homeSettings.update.path,
+    verifyToken,
+    authorizeRoles(ROLES.MD),
+    async (req, res) => {
+      try {
+        const { imageUrl } = req.body;
+        const updated = await storage.upsertHomeSettings(imageUrl);
+        res.json(updated);
+      } catch (err) {
+        res.status(500).json({ message: "Internal server error" });
+      }
+    }
+  );
+
   //Dashboard
   app.get(api.dashboard.path, verifyToken, async (req, res) => {
     const user = (req as any).user;
@@ -651,26 +672,37 @@ export async function registerRoutes(
       time: l.createdAt || new Date(),
     }));
 
-    const attendanceEvents = filteredAttendance.flatMap((a) => {
-      const events = [{
-        id: `attendance-in-${a.id}`,
-        type: "attendance",
-        action: "Employee checked in",
-        name: allUsers.find((u) => u.id === a.userId)?.name || "Unknown",
-        location: "Checked in",
-        time: a.checkInTime,
-      }];
-      if (a.checkOutTime) {
-        events.push({
-          id: `attendance-out-${a.id}`,
+    const attendanceEvents: any[] = [];
+    const seenAtt = new Set();
+    
+    filteredAttendance.forEach((a) => {
+      const inKey = `in-${a.userId}-${a.date}`;
+      if (!seenAtt.has(inKey)) {
+        seenAtt.add(inKey);
+        attendanceEvents.push({
+          id: `attendance-in-${a.id}`,
           type: "attendance",
-          action: "Employee checked out",
+          action: "Employee checked in",
           name: allUsers.find((u) => u.id === a.userId)?.name || "Unknown",
-          location: "Checked out",
-          time: a.checkOutTime,
+          location: "Checked in",
+          time: a.checkInTime,
         });
       }
-      return events;
+
+      if (a.checkOutTime) {
+        const outKey = `out-${a.userId}-${a.date}`;
+        if (!seenAtt.has(outKey)) {
+          seenAtt.add(outKey);
+          attendanceEvents.push({
+            id: `attendance-out-${a.id}`,
+            type: "attendance",
+            action: "Employee checked out",
+            name: allUsers.find((u) => u.id === a.userId)?.name || "Unknown",
+            location: "Checked out",
+            time: a.checkOutTime,
+          });
+        }
+      }
     });
 
     const recentActivity = [...leadEvents, ...attendanceEvents]

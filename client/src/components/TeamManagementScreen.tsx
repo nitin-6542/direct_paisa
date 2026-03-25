@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Users, Shield, Mail, Phone, UserPlus, Trash2, Search } from 'lucide-react';
+import { Plus, Users, Shield, Mail, Phone, UserPlus, Trash2, Search, List, Network, ChevronDown, ChevronRight } from 'lucide-react';
 import ConfirmationModal from './ui/ConfirmationModal';
 
 export default function TeamManagementScreen() {
@@ -19,6 +19,7 @@ export default function TeamManagementScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all'|'MD'|'AM'|'TL'|'EMPLOYEE'>('all');
   const [statusFilter, setStatusFilter] = useState<'all'|'active'|'inactive'>('all');
+  const [viewMode, setViewMode] = useState<'list'|'hierarchy'>('list');
 
   const fetchMembers = async () => {
     try {
@@ -258,8 +259,26 @@ export default function TeamManagementScreen() {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-500 hover:text-gray-900'}`}
+                title="List View"
+              >
+                <List size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('hierarchy')}
+                className={`p-2 rounded-md transition-colors ${viewMode === 'hierarchy' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-500 hover:text-gray-900'}`}
+                title="Hierarchy View"
+              >
+                <Network size={18} />
+              </button>
+            </div>
           </div>
         </div>
+        
+        {viewMode === 'list' ? (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -359,6 +378,11 @@ export default function TeamManagementScreen() {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="p-6 overflow-x-auto">
+            <HierarchyView members={filteredMembers} />
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -534,6 +558,104 @@ export default function TeamManagementScreen() {
         onConfirm={() => confirmTarget && handleDeleteMember(confirmTarget)}
         confirmText={deletingId ? 'Deleting...' : 'Delete'}
       />
+    </div>
+  );
+}
+
+function HierarchyView({ members }: { members: any[] }) {
+  // Build a tree
+  const mds = members.filter(m => m.role === 'MD');
+  
+  if (mds.length === 0) {
+    // If no MD, maybe just show AMs or TLs as roots.
+    return (
+       <div className="text-gray-500 text-sm">Hierarchy view is unavailable or no top-level managers found.</div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {mds.map(md => (
+        <HierarchyNode key={md.id} member={md} members={members} />
+      ))}
+    </div>
+  );
+}
+
+function HierarchyNode({ member, members }: { member: any, members: any[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  let children: any[] = [];
+  if (member.role === 'MD') {
+    children = members.filter(m => m.role === 'AM'); 
+    // also capture any TLs or EMPLOYEES without AM but created by MD
+    const allAms = members.filter(m => m.role === 'AM').map(a => a.id);
+    const directTLs = members.filter(m => m.role === 'TL' && !allAms.includes(m.areaManagerId));
+    children = [...children, ...directTLs];
+  } else if (member.role === 'AM') {
+    children = members.filter(m => m.role === 'TL' && m.areaManagerId === member.id);
+    const allTls = children.map(t => t.id);
+    const directEmps = members.filter(m => m.role === 'EMPLOYEE' && m.areaManagerId === member.id && !allTls.includes(m.teamLeaderId));
+    children = [...children, ...directEmps];
+  } else if (member.role === 'TL') {
+    children = members.filter(m => m.role === 'EMPLOYEE' && m.teamLeaderId === member.id);
+  }
+
+  const roleColors = {
+    'MD': 'bg-purple-100 text-purple-700 border-purple-200',
+    'AM': 'bg-blue-100 text-blue-700 border-blue-200',
+    'TL': 'bg-orange-100 text-orange-700 border-orange-200',
+    'EMPLOYEE': 'bg-gray-100 text-gray-700 border-gray-200'
+  };
+
+  const colorStyle = roleColors[member.role as keyof typeof roleColors] || roleColors['EMPLOYEE'];
+  const hasChildren = children.length > 0;
+
+  return (
+    <div className="relative pl-6 pt-2">
+      {/* Connector lines are handled by pseudo-classes in CSS, or we can draw rough borders */}
+      <div className="absolute top-0 bottom-0 left-[11px] w-px bg-gray-200" />
+      <div className="absolute top-8 left-[11px] w-4 h-px bg-gray-200" />
+      
+      <div 
+        onClick={() => hasChildren && setIsExpanded(!isExpanded)}
+        className={`relative z-10 flex items-center justify-between p-3 mb-2 rounded-xl border ${colorStyle} shadow-sm w-fit min-w-[300px] ${hasChildren ? 'cursor-pointer hover:shadow-md transition-all border-opacity-80' : ''}`}
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-white border border-gray-200 shrink-0">
+            {member.avatarUrl ? (
+              <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold">
+                {member.name.charAt(0)}
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="font-bold flex items-center gap-2">
+              {member.name}
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-white opacity-80">
+                {member.role}
+              </span>
+            </div>
+            <div className="text-xs opacity-80 mt-0.5">{member.email} • ID: {member.employeeId || 'N/A'}</div>
+          </div>
+        </div>
+        
+        {hasChildren && (
+          <div className="ml-6 flex items-center justify-center w-8 h-8 rounded-full bg-white/50 text-gray-600 shrink-0">
+            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+        )}
+      </div>
+      
+      {isExpanded && hasChildren && (
+        <div className="ml-8 border-l border-gray-200/50">
+          {children.map(child => (
+            <HierarchyNode key={child.id} member={child} members={members} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

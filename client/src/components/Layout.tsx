@@ -10,7 +10,8 @@ import {
   FileText,
   UserCircle,
   Menu,
-  X
+  X,
+  Calculator
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -35,6 +36,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Live Location', href: '/live-location', icon: MapPin, roles: ['MD', 'AM', 'TL'] },
 
     { name: 'Leads', href: '/leads', icon: FileText, roles: ['MD', 'AM', 'TL', 'EMPLOYEE'] },
+    { name: 'EMI Calculator', href: '/emi-calculator', icon: Calculator, roles: ['MD', 'AM', 'TL', 'EMPLOYEE'] },
     { name: 'Companies', href: '/companies', icon: Building2, roles: ['MD', 'AM', 'TL', 'EMPLOYEE'] },
     { name: 'About Us', href: '/about', icon: FileText, roles: ['MD', 'AM', 'TL', 'EMPLOYEE'] },
     { name: 'Profile', href: '/profile', icon: UserCircle, roles: ['MD', 'AM', 'TL', 'EMPLOYEE'] },

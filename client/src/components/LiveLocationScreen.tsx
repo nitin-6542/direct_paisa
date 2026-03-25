@@ -34,6 +34,29 @@ export default function LiveLocationScreen() {
   const mapRef = useRef<L.Map | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | number | null>(null);
   const ONLINE_THRESHOLD_MINUTES = 5; // consider online if last update within this many minutes
+  const [canTrack, setCanTrack] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    async function checkAttendance() {
+      try {
+        const res = await fetch("/api/attendance", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+           const atts = await res.json();
+           const today = new Date().toISOString().split("T")[0];
+           const todayAtt = atts.find((a: any) => a.userId === user?.id && a.date === today);
+           if (todayAtt && !todayAtt.checkOutTime) {
+             setCanTrack(true);
+           } else {
+             setCanTrack(false);
+           }
+        }
+      } catch (e) {}
+    }
+    checkAttendance();
+    const interval = setInterval(checkAttendance, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, [token, user]);
 
   function isMemberOnline(member: any) {
     if (!member || !member.timestamp) return false;
@@ -108,7 +131,7 @@ export default function LiveLocationScreen() {
       }
     };
 
-    if (navigator.geolocation) {
+    if (canTrack && navigator.geolocation) {
       // start watchPosition
       const id = navigator.geolocation.watchPosition(
         async (position) => {
@@ -139,7 +162,7 @@ export default function LiveLocationScreen() {
       }
       if (permCheck && permCheck.cancel) permCheck.cancel();
     };
-  }, [token, user]);
+  }, [token, user, canTrack]);
 
   // Reverse geocode helper (uses Nominatim OpenStreetMap)
   async function reverseGeocode(lat: number, lon: number) {
@@ -165,13 +188,22 @@ export default function LiveLocationScreen() {
   if (user?.role === "EMPLOYEE") {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-          <p className="text-blue-700 font-medium">Location Tracking Active</p>
-          <p className="text-blue-600 text-sm mt-1">
-            Your live location is being shared with your manager for attendance
-            verification.
-          </p>
-        </div>
+        {canTrack ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+            <p className="text-blue-700 font-medium">Location Tracking Active</p>
+            <p className="text-blue-600 text-sm mt-1">
+              Your live location is being shared with your manager for attendance
+              verification.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+            <p className="text-gray-700 font-medium">Location Tracking Disabled</p>
+            <p className="text-gray-500 text-sm mt-1">
+              Live location tracking is disabled outside of active shift hours.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

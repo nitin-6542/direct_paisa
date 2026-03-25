@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertLeadSchema, insertAttendanceSchema, insertCompanySchema, insertAboutUsSchema, users, leads, attendance, companies, aboutUs } from './schema';
+import { insertUserSchema, insertLeadSchema, insertAttendanceSchema, insertCompanySchema, insertAboutUsSchema, users, leads, attendance, companies, aboutUs, homeSettings } from './schema';
 
 export const errorSchemas = {
   validation: z.object({ message: z.string(), field: z.string().optional() }),
@@ -203,6 +203,25 @@ export const api = {
       input: z.object({ content: z.string() }),
       responses: {
         200: z.custom<typeof aboutUs.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+      }
+    }
+  },
+
+  homeSettings: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/home-settings' as const,
+      responses: {
+        200: z.custom<typeof homeSettings.$inferSelect>().optional(),
+      }
+    },
+    update: {
+      method: 'POST' as const,
+      path: '/api/home-settings' as const,
+      input: z.object({ imageUrl: z.string().nullable() }),
+      responses: {
+        200: z.custom<typeof homeSettings.$inferSelect>(),
         401: errorSchemas.unauthorized,
       }
     }

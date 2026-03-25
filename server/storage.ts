@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, leads, attendance, companies, aboutUs, type User, type InsertUser, type Lead, type InsertLead, type Attendance, type InsertAttendance, type Company, type InsertCompany, type AboutUs, type InsertAboutUs } from "@shared/schema";
+import { users, leads, attendance, companies, aboutUs, homeSettings, type User, type InsertUser, type Lead, type InsertLead, type Attendance, type InsertAttendance, type Company, type InsertCompany, type AboutUs, type InsertAboutUs, type HomeSettings } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -28,6 +28,9 @@ export interface IStorage {
 
   getAboutUs(): Promise<AboutUs | undefined>;
   upsertAboutUs(content: string): Promise<AboutUs>;
+
+  getHomeSettings(): Promise<HomeSettings | undefined>;
+  upsertHomeSettings(imageUrl: string | null): Promise<HomeSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -127,6 +130,22 @@ export class DatabaseStorage implements IStorage {
       return updated;
     } else {
       const [created] = await db.insert(aboutUs).values({ content }).returning();
+      return created;
+    }
+  }
+
+  async getHomeSettings(): Promise<HomeSettings | undefined> {
+    const result = await db.select().from(homeSettings).limit(1);
+    return result[0];
+  }
+
+  async upsertHomeSettings(imageUrl: string | null): Promise<HomeSettings> {
+    const existing = await this.getHomeSettings();
+    if (existing) {
+      const [updated] = await db.update(homeSettings).set({ imageUrl, updatedAt: new Date() }).where(eq(homeSettings.id, existing.id)).returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(homeSettings).values({ imageUrl }).returning();
       return created;
     }
   }
