@@ -276,8 +276,8 @@ export default function LiveLocationScreen() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 h-[calc(100vh-120px)] flex flex-col">
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex-shrink-0">
+    <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6 h-[calc(100vh-100px)] lg:h-[calc(100vh-120px)] flex flex-col">
+      <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-100 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-gray-900 mb-2 font-bold">
@@ -303,8 +303,8 @@ export default function LiveLocationScreen() {
         </div>
       </div>
 
-      <div className="flex-1 flex gap-6 overflow-hidden min-h-0">
-        <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col flex-shrink-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-hidden min-h-0 pb-4">
+        <div className="w-full lg:w-80 h-1/2 lg:h-full bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col flex-shrink-0">
           <div className="p-4 border-b border-gray-100">
             <div className="relative">
               <Search
@@ -357,12 +357,12 @@ export default function LiveLocationScreen() {
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative min-h-[400px]">
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-0 h-1/2 lg:h-full min-h-[300px]">
           <MapContainer
             ref={mapRef as any}
             center={[20.5937, 78.9629]}
             zoom={5}
-            style={{ height: "100%", width: "100%" }}
+            style={{ height: "100%", width: "100%", zIndex: 0 }}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {filteredTeam.map((member) => (
